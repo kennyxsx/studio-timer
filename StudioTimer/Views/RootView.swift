@@ -2,6 +2,7 @@
 import SwiftUI
 
 struct RootView: View {
+    @Environment(\.apiClient) private var api
     @EnvironmentObject private var appState: AppState
 
     var body: some View {
@@ -10,7 +11,7 @@ struct RootView: View {
         } else if appState.selectedWorkspaceID == nil {
             WorkspacePickerView()
         } else {
-            RootTabView()
+            RootTabView(api: api)
         }
     }
 }
