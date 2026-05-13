@@ -1,0 +1,118 @@
+# .github/workflows/release.yml
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Derive version from tag
+        id: version
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            VERSION="${GITHUB_REF#refs/tags/v}"
+          else
+            VERSION="0.0.0-dev.${GITHUB_SHA::7}"
+          fi
+          echo "VERSION=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Version: $VERSION"
+
+      - name: Patch version in project.yml
+        run: |
+          sed -i.bak "s/MARKETING_VERSION: .*/MARKETING_VERSION: \"${{ steps.version.outputs.VERSION }}\"/" project.yml
+          rm -f project.yml.bak
+
+      - name: Generate Xcode project
+        run: xcodegen generate --spec project.yml --project .
+
+      - name: Build archive (unsigned)
+        run: |
+          # Note: not piping through xcpretty — it's not preinstalled on
+          # macos-latest runners and the raw xcodebuild output is fine for CI.
+          # If logs become unmanageable later, install via `gem install xcpretty`.
+          xcodebuild -project StudioTimer.xcodeproj \
+            -scheme StudioTimer \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -archivePath build/StudioTimer.xcarchive \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGN_IDENTITY="" \
+            archive
+
+      - name: Package unsigned IPA
+        run: |
+          cd build/StudioTimer.xcarchive/Products/Applications
+          mkdir -p Payload
+          mv StudioTimer.app Payload/
+          zip -qr "$GITHUB_WORKSPACE/StudioTimer-${{ steps.version.outputs.VERSION }}.ipa" Payload
+          cd "$GITHUB_WORKSPACE"
+          ls -lh StudioTimer-${{ steps.version.outputs.VERSION }}.ipa
+
+      - name: Compute IPA size and SHA-256
+        id: ipa
+        run: |
+          IPA="StudioTimer-${{ steps.version.outputs.VERSION }}.ipa"
+          SIZE=$(stat -f%z "$IPA")
+          SHA=$(shasum -a 256 "$IPA" | cut -d' ' -f1)
+          echo "SIZE=$SIZE" >> "$GITHUB_OUTPUT"
+          echo "SHA=$SHA" >> "$GITHUB_OUTPUT"
+
+      - name: Update SideStore source manifest
+        run: |
+          VERSION="${{ steps.version.outputs.VERSION }}"
+          DATE="$(date -u +%Y-%m-%d)"
+          URL="https://github.com/${{ github.repository }}/releases/download/v${VERSION}/StudioTimer-${VERSION}.ipa"
+          jq --arg v "$VERSION" \
+             --arg d "$DATE" \
+             --arg u "$URL" \
+             --argjson sz "${{ steps.ipa.outputs.SIZE }}" \
+             --arg sha "${{ steps.ipa.outputs.SHA }}" \
+             '.apps[0].version = $v
+            | .apps[0].versionDate = $d
+            | .apps[0].downloadURL = $u
+            | .apps[0].size = $sz
+            | .apps[0].sha256 = $sha' \
+             docs/sidestore-source.json > docs/sidestore-source.json.new
+          mv docs/sidestore-source.json.new docs/sidestore-source.json
+
+      - name: Upload IPA artifact (for inspection on workflow run page)
+        uses: actions/upload-artifact@v4
+        with:
+          name: StudioTimer-${{ steps.version.outputs.VERSION }}.ipa
+          path: StudioTimer-${{ steps.version.outputs.VERSION }}.ipa
+
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: StudioTimer-${{ steps.version.outputs.VERSION }}.ipa
+          generate_release_notes: true
+
+      - name: Publish source.json to GitHub Pages
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./docs
+          keep_files: true
