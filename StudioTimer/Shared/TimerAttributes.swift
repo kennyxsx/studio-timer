@@ -10,5 +10,6 @@ struct TimerAttributes: ActivityAttributes {
         var pausedAt: Date?          // nil if running; non-nil if paused (wall-clock time of pause)
         var pausedElapsedSeconds: Int // frozen elapsed for display when paused
         var isPaused: Bool           // explicit flag for widget rendering decisions
+        var debugTapCount: Int = 0   // increments each time a LA intent fires
     }
 }

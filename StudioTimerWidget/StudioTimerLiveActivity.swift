@@ -70,6 +70,14 @@ private struct LockScreenView: View {
                 }
                 .buttonStyle(.borderedProminent)
             }
+            HStack {
+                Spacer()
+                if state.debugTapCount > 0 {
+                    Text("⚙ taps: \(state.debugTapCount)")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+            }
         }
     }
 
