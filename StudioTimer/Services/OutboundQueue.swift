@@ -70,7 +70,7 @@ final class OutboundQueue: ObservableObject {
         }
     }
 
-    static var defaultURL: URL {
+    nonisolated static var defaultURL: URL {
         let dir = (try? FileManager.default.url(
             for: .applicationSupportDirectory,
             in: .userDomainMask,

@@ -42,7 +42,7 @@ extension Notification.Name {
 }
 
 extension AppState {
-    static var apiBaseURL: URL {
+    nonisolated static var apiBaseURL: URL {
         if let override = ProcessInfo.processInfo.environment["STUDIO_API_BASE_URL"] {
             return URL(string: override)!
         }

@@ -18,14 +18,14 @@ final class TimerStore: ObservableObject {
 
     init(api: APIClient,
          workspaceProvider: @escaping () -> String?,
-         queue: OutboundQueue = OutboundQueue(),
+         queue: OutboundQueue? = nil,
          isOnlineProvider: @escaping () -> Bool = { true },
-         activityController: LiveActivityController = .init()) {
+         activityController: LiveActivityController? = nil) {
         self.api = api
         self.workspaceProvider = workspaceProvider
-        self.queue = queue
+        self.queue = queue ?? OutboundQueue()
         self.isOnlineProvider = isOnlineProvider
-        self.activityController = activityController
+        self.activityController = activityController ?? LiveActivityController()
         let dir = (try? FileManager.default.url(
             for: .applicationSupportDirectory,
             in: .userDomainMask,
