@@ -98,12 +98,39 @@ final class TimerStore: ObservableObject {
             await activityController.end()
             return entry
         } catch {
-            if !isOnlineProvider() {
+            // Detect network failures from the error itself. The URLError codes below
+            // mean "the request never reached the server" regardless of what the
+            // NetworkMonitor thinks. The isOnlineProvider fallback covers cases
+            // where the error wasn't a URLError but we know we're offline.
+            let isOfflineFailure: Bool
+            if let urlError = error as? URLError {
+                switch urlError.code {
+                case .notConnectedToInternet,
+                     .timedOut,
+                     .networkConnectionLost,
+                     .cannotConnectToHost,
+                     .cannotFindHost,
+                     .dnsLookupFailed,
+                     .internationalRoamingOff,
+                     .callIsActive,
+                     .dataNotAllowed,
+                     .secureConnectionFailed:
+                    isOfflineFailure = true
+                default:
+                    isOfflineFailure = false
+                }
+            } else if !isOnlineProvider() {
+                isOfflineFailure = true
+            } else {
+                isOfflineFailure = false
+            }
+
+            if isOfflineFailure {
                 try? queue.enqueue(.stop(
                     workspaceID: wsID,
                     startedAt: resolved.startedAt,
                     durationMinutes: minutes))
-                // Don't surface a draft entry; the caller's classify sheet should NOT open.
+                // Don't surface a draft — the queue will create one when it drains.
                 active = nil
                 state = .idle
                 clearPersistence()

@@ -9,6 +9,7 @@ struct TimerView: View {
     @State private var showingSettings = false
     @State private var classifyDraft: Entry?
     @State private var errorText: String?
+    @State private var queuedMessage: String?
     @State private var stopConfirmationActive: Bool = false
 
     var body: some View {
@@ -29,8 +30,17 @@ struct TimerView: View {
                             .padding(.horizontal)
                     }
 
+                    if let queuedMessage {
+                        Text(queuedMessage)
+                            .font(.callout)
+                            .foregroundStyle(.secondary)
+                            .padding(.horizontal)
+                            .transition(.opacity)
+                    }
+
                     Spacer()
                 }
+                .animation(.easeInOut, value: queuedMessage)
             }
             .navigationTitle("Studio Timer")
             .navigationBarTitleDisplayMode(.inline)
@@ -50,6 +60,14 @@ struct TimerView: View {
                 // Live Activity), open the classify sheet for the newest entry.
                 if newValue.count > oldValue.count, let newest = newValue.first {
                     classifyDraft = newest
+                }
+            }
+            .onChange(of: queuedMessage) { _, newValue in
+                if newValue != nil {
+                    Task {
+                        try? await Task.sleep(for: .seconds(4))
+                        await MainActor.run { queuedMessage = nil }
+                    }
                 }
             }
             .confirmationDialog(
@@ -153,9 +171,13 @@ struct TimerView: View {
 
     private func performStop() async {
         errorText = nil
+        queuedMessage = nil
         do {
             if let entry = try await store.stop() {
                 classifyDraft = entry
+            } else {
+                // Offline path: stop was enqueued, no immediate draft to classify.
+                queuedMessage = "Saved — will sync when you're back online."
             }
         } catch let APIError.http(_, _, message) {
             errorText = message

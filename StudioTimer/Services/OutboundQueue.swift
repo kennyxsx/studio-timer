@@ -34,6 +34,9 @@ final class OutboundQueue: ObservableObject {
     }
 
     func drain(using api: APIClient) async {
+        // Refresh from disk: another instance of OutboundQueue (e.g., the one
+        // inside TimerStore) may have written commands we haven't observed.
+        load()
         var remaining: [OutboundCommand] = []
         for cmd in pending {
             switch cmd.kind {
