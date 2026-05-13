@@ -60,22 +60,21 @@ private struct LockScreenView: View {
                     .font(.system(size: 40, weight: .light, design: .rounded).monospacedDigit())
             }
             HStack(spacing: 16) {
-                Button(intent: PauseTimerIntent()) {
+                Link(destination: URL(string: "studio-timer://command/toggle-pause")!) {
                     Label(state.isPaused ? "Resume" : "Pause", systemImage: state.isPaused ? "play.fill" : "pause.fill")
+                        .font(.subheadline.bold())
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 8)
+                        .background(.thinMaterial, in: Capsule())
                 }
-                .buttonStyle(.bordered)
 
-                Button(intent: StopTimerIntent()) {
+                Link(destination: URL(string: "studio-timer://command/stop")!) {
                     Label("Stop", systemImage: "stop.fill")
-                }
-                .buttonStyle(.borderedProminent)
-            }
-            HStack {
-                Spacer()
-                if state.debugTapCount > 0 {
-                    Text("⚙ taps: \(state.debugTapCount)")
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
+                        .font(.subheadline.bold())
+                        .foregroundStyle(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 8)
+                        .background(Color.accentColor, in: Capsule())
                 }
             }
         }
