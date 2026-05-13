@@ -9,6 +9,7 @@ struct TimerView: View {
     @State private var showingSettings = false
     @State private var classifyDraft: Entry?
     @State private var errorText: String?
+    @State private var stopConfirmationActive: Bool = false
 
     var body: some View {
         NavigationStack {
@@ -39,6 +40,17 @@ struct TimerView: View {
             .sheet(isPresented: $showingSettings) { SettingsView() }
             .sheet(item: $classifyDraft) { draft in
                 ClassifyView(entry: draft, mode: .classifyDraft)
+            }
+            .confirmationDialog(
+                "Timer ran for \(timerString(seconds: store.active?.elapsedSeconds(at: Date()) ?? 0))",
+                isPresented: $stopConfirmationActive,
+                titleVisibility: .visible)
+            {
+                Button("Save anyway") { Task { await performStop() } }
+                Button("Discard timer", role: .destructive) { store.discardActive() }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("This is unusually long. Did you forget to stop it?")
             }
         }
     }
@@ -118,6 +130,16 @@ struct TimerView: View {
     }
 
     private func stop() async {
+        guard let active = store.active else { return }
+        let runtime = active.elapsedSeconds(at: Date())
+        if runtime > 24 * 3600 {
+            stopConfirmationActive = true
+            return
+        }
+        await performStop()
+    }
+
+    private func performStop() async {
         errorText = nil
         do {
             if let entry = try await store.stop() {
