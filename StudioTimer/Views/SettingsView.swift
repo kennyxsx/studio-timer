@@ -46,6 +46,8 @@ struct SettingsView: View {
                         value: Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "—")
                 }
             }
+            .scrollContentBackground(.hidden)
+            .background(Theme.base100)
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

@@ -103,6 +103,8 @@ struct ClassifyView: View {
                     Section { Text(errorText).foregroundStyle(.red) }
                 }
             }
+            .scrollContentBackground(.hidden)
+            .background(Theme.base100)
             .navigationTitle(mode == .classifyDraft ? "Classify" : "Edit Entry")
             .navigationBarTitleDisplayMode(.inline)
             .scrollDismissesKeyboard(.interactively)

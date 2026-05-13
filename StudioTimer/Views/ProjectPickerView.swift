@@ -23,6 +23,8 @@ struct ProjectPickerView: View {
                     Text(project.name)
                 }
             }
+            .scrollContentBackground(.hidden)
+            .background(Theme.base100)
             .searchable(text: $searchText, prompt: "Search projects")
             .navigationTitle("Select Project")
             .navigationBarTitleDisplayMode(.inline)

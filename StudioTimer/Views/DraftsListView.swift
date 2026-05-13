@@ -40,6 +40,8 @@ struct DraftsListView: View {
                     }
                 }
             }
+            .scrollContentBackground(.hidden)
+            .background(Theme.base100)
             .navigationTitle("Drafts")
             .refreshable { await store.refreshDrafts() }
             .task { await store.refreshDrafts() }

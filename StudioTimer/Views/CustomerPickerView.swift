@@ -24,11 +24,13 @@ struct CustomerPickerView: View {
                         Text(customer.name)
                         Spacer()
                         if selectedID == customer.id {
-                            Image(systemName: "checkmark").foregroundStyle(.blue)
+                            Image(systemName: "checkmark").foregroundStyle(Theme.accent)
                         }
                     }
                 }
             }
+            .scrollContentBackground(.hidden)
+            .background(Theme.base100)
             .searchable(text: $searchText, prompt: "Search customers")
             .navigationTitle("Select Customer")
             .navigationBarTitleDisplayMode(.inline)

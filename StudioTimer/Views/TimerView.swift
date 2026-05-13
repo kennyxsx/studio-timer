@@ -13,20 +13,24 @@ struct TimerView: View {
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: 32) {
-                Spacer()
+            ZStack {
+                Theme.base100.ignoresSafeArea()
 
-                elapsedDisplay
+                VStack(spacing: 32) {
+                    Spacer()
 
-                controls
+                    elapsedDisplay
 
-                if let errorText {
-                    Text(errorText)
-                        .foregroundStyle(.red)
-                        .padding(.horizontal)
+                    controls
+
+                    if let errorText {
+                        Text(errorText)
+                            .foregroundStyle(.red)
+                            .padding(.horizontal)
+                    }
+
+                    Spacer()
                 }
-
-                Spacer()
             }
             .navigationTitle("Studio Timer")
             .navigationBarTitleDisplayMode(.inline)
@@ -78,6 +82,7 @@ struct TimerView: View {
                 let anchor = active.startedAt.addingTimeInterval(pausedSum)
                 Text(anchor, style: .timer)
                     .font(.system(size: 64, weight: .light, design: .rounded).monospacedDigit())
+                    .foregroundStyle(Theme.primary)
             }
         } else {
             Text("00:00")

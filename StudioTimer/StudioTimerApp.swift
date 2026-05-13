@@ -28,6 +28,8 @@ struct StudioTimerApp: App {
                 .environmentObject(network)
                 .environmentObject(timerStore)
                 .environment(\.apiClient, api)
+                .preferredColorScheme(.dark)
+                .tint(Theme.accent)
                 .onOpenURL { url in handleCommand(url) }
                 .onChange(of: network.isOnline) { _, online in
                     if online {

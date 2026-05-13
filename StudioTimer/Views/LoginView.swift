@@ -13,49 +13,62 @@ struct LoginView: View {
     private let keychain = KeychainStore()
 
     var body: some View {
-        VStack(spacing: 24) {
-            Text("Studio Timer")
-                .font(.largeTitle.bold())
+        ZStack {
+            Theme.base100.ignoresSafeArea()
 
-            VStack(alignment: .leading, spacing: 12) {
-                TextField("Email", text: $email)
-                    .textContentType(.emailAddress)
-                    .keyboardType(.emailAddress)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 10)
-                    .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 10))
+            VStack(spacing: 24) {
+                Text("Studio Timer")
+                    .font(.largeTitle.bold())
+                    .foregroundStyle(Theme.primary)
 
-                SecureField("Password", text: $password)
-                    .textContentType(.password)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 10)
-                    .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 10))
-            }
-            .padding(.horizontal)
+                VStack(alignment: .leading, spacing: 12) {
+                    TextField("Email", text: $email)
+                        .textContentType(.emailAddress)
+                        .keyboardType(.emailAddress)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 10)
+                        .background(Theme.base200, in: RoundedRectangle(cornerRadius: Theme.radiusField, style: .continuous))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: Theme.radiusField, style: .continuous)
+                                .strokeBorder(Theme.base300, lineWidth: 1)
+                        )
 
-            if let errorText {
-                Text(errorText)
-                    .foregroundStyle(.red)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal)
-            }
-
-            Button(action: signIn) {
-                if isLoading {
-                    ProgressView().tint(.white)
-                } else {
-                    Text("Sign In").bold()
+                    SecureField("Password", text: $password)
+                        .textContentType(.password)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 10)
+                        .background(Theme.base200, in: RoundedRectangle(cornerRadius: Theme.radiusField, style: .continuous))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: Theme.radiusField, style: .continuous)
+                                .strokeBorder(Theme.base300, lineWidth: 1)
+                        )
                 }
-            }
-            .buttonStyle(.borderedProminent)
-            .controlSize(.large)
-            .disabled(isLoading || email.isEmpty || password.isEmpty)
+                .padding(.horizontal)
 
-            Spacer()
+                if let errorText {
+                    Text(errorText)
+                        .foregroundStyle(.red)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal)
+                }
+
+                Button(action: signIn) {
+                    if isLoading {
+                        ProgressView().tint(.white)
+                    } else {
+                        Text("Sign In").bold()
+                    }
+                }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.large)
+                .disabled(isLoading || email.isEmpty || password.isEmpty)
+
+                Spacer()
+            }
+            .padding(.top, 60)
         }
-        .padding(.top, 60)
     }
 
     private func signIn() {

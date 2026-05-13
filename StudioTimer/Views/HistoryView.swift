@@ -47,6 +47,8 @@ struct HistoryView: View {
                     }
                 }
             }
+            .scrollContentBackground(.hidden)
+            .background(Theme.base100)
             .navigationTitle("History")
             .refreshable { await reload() }
             .task(id: rangeDays) { await reload() }
