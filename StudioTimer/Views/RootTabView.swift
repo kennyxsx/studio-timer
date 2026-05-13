@@ -6,14 +6,16 @@ struct RootTabView: View {
     @EnvironmentObject private var appState: AppState
     @StateObject private var timerStore: TimerStore
 
-    init(api: APIClient) {
+    /// `network` is accepted as a parameter so that TimerStore can capture it in its
+    /// `isOnlineProvider` closure at init time — `@EnvironmentObject` is not yet
+    /// injected when `@StateObject` is initialized, so we pass the shared instance
+    /// explicitly from the call site (RootView already holds it as an EnvironmentObject).
+    init(api: APIClient, network: NetworkMonitor) {
         self.api = api
-        // Initialize TimerStore once for the lifetime of the authenticated session,
-        // using the shared APIClient (so 401-refresh and keychain reads/writes
-        // remain coherent with the rest of the app).
         _timerStore = StateObject(wrappedValue: TimerStore(
             api: api,
-            workspaceProvider: { UserDefaults.standard.string(forKey: "selected_workspace_id") }))
+            workspaceProvider: { UserDefaults.standard.string(forKey: "selected_workspace_id") },
+            isOnlineProvider: { network.isOnline }))
     }
 
     var body: some View {

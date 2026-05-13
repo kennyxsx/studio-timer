@@ -13,12 +13,18 @@ final class TimerStore: ObservableObject {
     private let workspaceProvider: () -> String?
     private let persistenceURL: URL
     private let activityController: LiveActivityController
+    private let queue: OutboundQueue
+    private let isOnlineProvider: () -> Bool
 
     init(api: APIClient,
          workspaceProvider: @escaping () -> String?,
+         queue: OutboundQueue = OutboundQueue(),
+         isOnlineProvider: @escaping () -> Bool = { true },
          activityController: LiveActivityController = .init()) {
         self.api = api
         self.workspaceProvider = workspaceProvider
+        self.queue = queue
+        self.isOnlineProvider = isOnlineProvider
         self.activityController = activityController
         let dir = (try? FileManager.default.url(
             for: .applicationSupportDirectory,
@@ -77,19 +83,35 @@ final class TimerStore: ObservableObject {
         let seconds = resolved.elapsedSeconds(at: Date())
         let minutes = max(seconds / 60, 1)
 
-        // Post draft to backend.
-        let entry = try await api.createDraft(
-            workspaceID: wsID,
-            startedAt: resolved.startedAt,
-            durationMinutes: minutes)
+        // Post draft to backend; enqueue offline if unreachable.
+        do {
+            let entry = try await api.createDraft(
+                workspaceID: wsID,
+                startedAt: resolved.startedAt,
+                durationMinutes: minutes)
 
-        // Append to local drafts, clear active state.
-        drafts.insert(entry, at: 0)
-        active = nil
-        state = .idle
-        clearPersistence()
-        await activityController.end()
-        return entry
+            // Append to local drafts, clear active state.
+            drafts.insert(entry, at: 0)
+            active = nil
+            state = .idle
+            clearPersistence()
+            await activityController.end()
+            return entry
+        } catch {
+            if !isOnlineProvider() {
+                try? queue.enqueue(.stop(
+                    workspaceID: wsID,
+                    startedAt: resolved.startedAt,
+                    durationMinutes: minutes))
+                // Don't surface a draft entry; the caller's classify sheet should NOT open.
+                active = nil
+                state = .idle
+                clearPersistence()
+                await activityController.end()
+                return nil
+            }
+            throw error
+        }
     }
 
     func discardActive() {
