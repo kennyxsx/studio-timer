@@ -4,7 +4,6 @@
   "subtitle": "Internal studio time tracker",
   "description": "Single-user time tracker for the studio backend. Distributed via SideStore.",
   "iconURL": "https://placehold.co/512x512.png",
-  "headerURL": "",
   "website": "https://github.com/kennyxsx/studio-timer",
   "tintColor": "#0078FF",
   "featuredApps": ["de.ivy-s.studiotimer"],
@@ -13,14 +12,25 @@
       "name": "Studio Timer",
       "bundleIdentifier": "de.ivy-s.studiotimer",
       "developerName": "Ivy's Studio",
-      "version": "0.0.0",
-      "versionDate": "2026-05-12",
-      "versionDescription": "Initial scaffold.",
-      "downloadURL": "https://github.com/kennyxsx/studio-timer/releases/download/v0.0.0/StudioTimer-0.0.0.ipa",
       "iconURL": "https://placehold.co/512x512.png",
       "tintColor": "#0078FF",
-      "size": 0,
-      "localizedDescription": "Single-user studio time tracker."
+      "category": "productivity",
+      "localizedDescription": "Single-user studio time tracker.",
+      "screenshotURLs": [],
+      "versions": [
+        {
+          "version": "0.0.0",
+          "buildVersion": "1",
+          "date": "2026-05-13",
+          "localizedDescription": "Initial placeholder. The first real build will appear on the next CI tag.",
+          "downloadURL": "https://github.com/kennyxsx/studio-timer/releases/download/v0.0.0/StudioTimer-0.0.0.ipa",
+          "size": 0
+        }
+      ],
+      "appPermissions": {
+        "entitlements": [],
+        "privacy": {}
+      }
     }
   ],
   "news": []

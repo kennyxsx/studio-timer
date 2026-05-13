@@ -88,11 +88,15 @@ jobs:
              --arg u "$URL" \
              --argjson sz "${{ steps.ipa.outputs.SIZE }}" \
              --arg sha "${{ steps.ipa.outputs.SHA }}" \
-             '.apps[0].version = $v
-            | .apps[0].versionDate = $d
-            | .apps[0].downloadURL = $u
-            | .apps[0].size = $sz
-            | .apps[0].sha256 = $sha' \
+             '.apps[0].versions = ([{
+                  "version": $v,
+                  "buildVersion": "1",
+                  "date": $d,
+                  "localizedDescription": ("Release " + $v + "."),
+                  "downloadURL": $u,
+                  "size": $sz,
+                  "sha256": $sha
+                }] + (.apps[0].versions | map(select(.version != $v))))' \
              docs/sidestore-source.json > docs/sidestore-source.json.new
           mv docs/sidestore-source.json.new docs/sidestore-source.json
 
