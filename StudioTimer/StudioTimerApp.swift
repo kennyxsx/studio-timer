@@ -5,7 +5,7 @@ import ActivityKit
 @main
 struct StudioTimerApp: App {
     @StateObject private var appState = AppState()
-    @StateObject private var network = NetworkMonitor()
+    @StateObject private var network = NetworkMonitor.shared
     /// Drain-side queue: shares the same on-disk file as TimerStore's own OutboundQueue.
     /// Both operate on `Application Support/outbound_queue.json`, so writes from
     /// TimerStore are visible to drain calls here on next reachability change.
@@ -21,7 +21,10 @@ struct StudioTimerApp: App {
         _timerStore = StateObject(wrappedValue: TimerStore(
             api: api,
             workspaceProvider: { UserDefaults.standard.string(forKey: "selected_workspace_id") },
-            isOnlineProvider: { true }))
+            // Reads from the same singleton instance the App's @StateObject
+            // holds — both paths see the same NWPathMonitor and the same
+            // current isOnline value.
+            isOnlineProvider: { MainActor.assumeIsolated { NetworkMonitor.shared.isOnline } }))
     }
 
     var body: some Scene {
