@@ -1,0 +1,19 @@
+# XcodeGen-generated project (never commit)
+*.xcodeproj/
+
+# Xcode build output
+build/
+DerivedData/
+*.xcuserstate
+xcuserdata/
+
+# IPA artifacts
+*.ipa
+Payload/
+
+# macOS noise
+.DS_Store
+
+# Swift package manager (not used, but defensive)
+.swiftpm/
+Package.resolved
