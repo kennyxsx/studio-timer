@@ -15,15 +15,15 @@
       "name": "Studio Timer",
       "bundleIdentifier": "de.ivy-s.studiotimer",
       "developerName": "Ivy's Studio",
-      "version": "0.0.1",
+      "version": "0.0.2",
       "versionDate": "2026-05-13",
       "versionDescription": "Initial scaffold.",
-      "downloadURL": "https://github.com/kennyxsx/studio-timer/releases/download/v0.0.1/StudioTimer-0.0.1.ipa",
+      "downloadURL": "https://github.com/kennyxsx/studio-timer/releases/download/v0.0.2/StudioTimer-0.0.2.ipa",
       "iconURL": "https://placehold.co/512x512.png",
       "tintColor": "#0078FF",
-      "size": 15052,
+      "size": 239588,
       "localizedDescription": "Single-user studio time tracker.",
-      "sha256": "806f9dec943c54729a22851575ac3ed040022c878b9ce35d812d0e090cd62f59"
+      "sha256": "ef8b1fc2620c687269518061b9b79f17414317f95a0804aac30bee1df2f0e895"
     }
   ],
   "news": []
