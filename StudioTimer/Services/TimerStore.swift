@@ -231,7 +231,10 @@ final class TimerStore: ObservableObject {
             let restored = try JSONDecoder().decode(ActiveTimer.self, from: data)
             self.active = restored
             self.state = restored.currentPauseStart != nil ? .paused : .running
-            Task { await activityController.start(for: restored) }
+            // reattachOrStart: pick up any Live Activity the system kept alive
+            // across the force-quit; only spawn a fresh one if none exist.
+            // Plain start() here would duplicate the existing activity.
+            Task { await activityController.reattachOrStart(for: restored) }
         } catch {
             try? FileManager.default.removeItem(at: persistenceURL)
         }
