@@ -5,6 +5,10 @@ import SwiftUI
 struct StudioTimerApp: App {
     @StateObject private var appState = AppState()
     @StateObject private var network = NetworkMonitor()
+    /// Drain-side queue: shares the same on-disk file as TimerStore's own OutboundQueue.
+    /// Both operate on `Application Support/outbound_queue.json`, so writes from
+    /// TimerStore are visible to drain calls here on next reachability change.
+    @StateObject private var queue = OutboundQueue()
 
     var body: some Scene {
         WindowGroup {
@@ -13,6 +17,16 @@ struct StudioTimerApp: App {
                 .environmentObject(network)
                 .environment(\.apiClient, APIClient(baseURL: AppState.apiBaseURL))
                 .onOpenURL { url in handleCommand(url) }
+                .onChange(of: network.isOnline) { _, online in
+                    if online {
+                        Task { await queue.drain(using: APIClient(baseURL: AppState.apiBaseURL)) }
+                    }
+                }
+                .task {
+                    if network.isOnline {
+                        await queue.drain(using: APIClient(baseURL: AppState.apiBaseURL))
+                    }
+                }
         }
     }
 
