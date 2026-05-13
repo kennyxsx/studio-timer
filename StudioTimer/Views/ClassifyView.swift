@@ -30,6 +30,12 @@ struct ClassifyView: View {
 
     @State private var showingProjectPicker = false
     @State private var showingCustomerPicker = false
+    @FocusState private var focusedField: Field?
+
+    enum Field: Hashable {
+        case category
+        case notes
+    }
 
     enum ShapeTab: String, CaseIterable {
         case project = "Project"
@@ -71,6 +77,9 @@ struct ClassifyView: View {
 
                 Section("Category") {
                     TextField("e.g. Shoot, Editing, Admin", text: $category)
+                        .focused($focusedField, equals: .category)
+                        .submitLabel(.next)
+                        .onSubmit { focusedField = .notes }
                     if !categorySuggestions.isEmpty {
                         ScrollView(.horizontal, showsIndicators: false) {
                             HStack {
@@ -87,6 +96,7 @@ struct ClassifyView: View {
                 Section("Notes") {
                     TextField("Optional", text: $notes, axis: .vertical)
                         .lineLimit(3, reservesSpace: true)
+                        .focused($focusedField, equals: .notes)
                 }
 
                 if let errorText {
@@ -95,6 +105,7 @@ struct ClassifyView: View {
             }
             .navigationTitle(mode == .classifyDraft ? "Classify" : "Edit Entry")
             .navigationBarTitleDisplayMode(.inline)
+            .scrollDismissesKeyboard(.interactively)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
@@ -102,6 +113,10 @@ struct ClassifyView: View {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save") { Task { await save() } }
                         .disabled(!canSave || isSaving)
+                }
+                ToolbarItemGroup(placement: .keyboard) {
+                    Spacer()
+                    Button("Done") { focusedField = nil }
                 }
             }
             .task { await loadLookups() }
@@ -136,22 +151,49 @@ struct ClassifyView: View {
                 Spacer()
                 Text(String(format: "%.0f%%", split.percentage))
                     .foregroundStyle(.secondary)
+                Button {
+                    removeSplit(id: split.id)
+                } label: {
+                    Image(systemName: "minus.circle.fill")
+                        .foregroundStyle(.red)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Remove \(split.projectName)")
             }
-        }
-        .onDelete { idxSet in
-            for idx in idxSet { splits.remove(at: idx) }
-            rebalanceSplits()
+            .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                Button(role: .destructive) {
+                    removeSplit(id: split.id)
+                } label: {
+                    Label("Remove", systemImage: "trash")
+                }
+            }
         }
         Button("Add project…") { showingProjectPicker = true }
         if splits.count > 1 {
             ForEach($splits) { $split in
                 VStack(alignment: .leading) {
                     Text(split.projectName).font(.caption).foregroundStyle(.secondary)
-                    Slider(value: $split.percentage, in: 0...100, step: 5)
-                        .onChange(of: split.percentage) { _, _ in rebalanceSplits(except: split.id) }
+                    // Rebalance only when the user lifts their finger (editing == false).
+                    // Updating during drag triggers cascading .onChange writes across the
+                    // other sliders and creates a feedback loop with 3+ projects.
+                    Slider(
+                        value: $split.percentage,
+                        in: 0...100,
+                        step: 5,
+                        onEditingChanged: { editing in
+                            if !editing {
+                                rebalanceSplits(except: split.id)
+                            }
+                        }
+                    )
                 }
             }
         }
+    }
+
+    private func removeSplit(id: UUID) {
+        splits.removeAll { $0.id == id }
+        rebalanceSplits()
     }
 
     @ViewBuilder

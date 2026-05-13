@@ -38,6 +38,13 @@ struct HistoryView: View {
                                 .foregroundStyle(.secondary)
                         }
                     }
+                    .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                        Button(role: .destructive) {
+                            Task { await delete(entry) }
+                        } label: {
+                            Label("Delete", systemImage: "trash")
+                        }
+                    }
                 }
             }
             .navigationTitle("History")
@@ -61,6 +68,19 @@ struct HistoryView: View {
         let from = Calendar.current.date(byAdding: .day, value: -rangeDays, to: Date()) ?? Date()
         do {
             entries = try await api.listEntries(workspaceID: wsID, from: from, to: Date(), status: nil)
+        } catch let APIError.http(_, _, message) {
+            errorText = message
+        } catch {
+            errorText = error.localizedDescription
+        }
+    }
+
+    private func delete(_ entry: Entry) async {
+        do {
+            try await api.deleteEntry(entry.id)
+            entries.removeAll { $0.id == entry.id }
+            // If the entry is also in the drafts list (was draft), drop it there too.
+            store.removeDraft(id: entry.id)
         } catch let APIError.http(_, _, message) {
             errorText = message
         } catch {
