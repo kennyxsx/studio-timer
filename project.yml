@@ -17,6 +17,10 @@ settings:
     CODE_SIGN_STYLE: Manual
     CODE_SIGNING_ALLOWED: "NO"
     DEVELOPMENT_TEAM: ""
+    SWIFT_STRICT_CONCURRENCY: minimal
+    SWIFT_UPCOMING_FEATURE_IsolatedDefaultValues: NO
+    SWIFT_UPCOMING_FEATURE_RegionBasedIsolation: NO
+    SWIFT_UPCOMING_FEATURE_InferSendableFromCaptures: NO
 
 targets:
   StudioTimer:
