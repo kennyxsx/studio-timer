@@ -41,17 +41,11 @@ struct TimerView: View {
             .sheet(item: $classifyDraft) { draft in
                 ClassifyView(entry: draft, mode: .classifyDraft)
             }
-            .onReceive(NotificationCenter.default.publisher(for: .studioTimerCommand)) { note in
-                guard let cmd = note.object as? String else { return }
-                Task {
-                    switch cmd {
-                    case "toggle-pause":
-                        if store.state == .running { await store.pause() }
-                        else if store.state == .paused { await store.resume() }
-                    case "stop":
-                        await self.stop()
-                    default: break
-                    }
+            .onChange(of: store.drafts) { oldValue, newValue in
+                // When a new draft is added (e.g. by a URL-triggered stop from the
+                // Live Activity), open the classify sheet for the newest entry.
+                if newValue.count > oldValue.count, let newest = newValue.first {
+                    classifyDraft = newest
                 }
             }
             .confirmationDialog(

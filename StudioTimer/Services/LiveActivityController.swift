@@ -6,12 +6,17 @@ import ActivityKit
 final class LiveActivityController {
     private var activity: Activity<TimerAttributes>?
 
+    private func pauseAdjustedAnchor(for timer: ActiveTimer) -> Date {
+        let pausedSum = timer.pauseIntervals.reduce(0) { $0 + $1.duration }
+        return timer.startedAt.addingTimeInterval(pausedSum)
+    }
+
     func start(for timer: ActiveTimer) async {
         guard ActivityAuthorizationInfo().areActivitiesEnabled else { return }
         let state = TimerAttributes.TimerContentState(
-            startedAt: timer.startedAt,
-            pausedElapsedSeconds: 0,
-            isPaused: false)
+            startedAt: pauseAdjustedAnchor(for: timer),
+            pausedElapsedSeconds: timer.elapsedSeconds(at: Date()),
+            isPaused: timer.currentPauseStart != nil)
         let content = ActivityContent(state: state, staleDate: nil)
         do {
             activity = try Activity<TimerAttributes>.request(
@@ -25,10 +30,9 @@ final class LiveActivityController {
 
     func update(for timer: ActiveTimer, isPaused: Bool) async {
         guard let activity else { return }
-        let pausedElapsed = timer.elapsedSeconds(at: Date())
         let state = TimerAttributes.TimerContentState(
-            startedAt: timer.startedAt,
-            pausedElapsedSeconds: pausedElapsed,
+            startedAt: pauseAdjustedAnchor(for: timer),
+            pausedElapsedSeconds: timer.elapsedSeconds(at: Date()),
             isPaused: isPaused)
         await activity.update(.init(state: state, staleDate: nil))
     }

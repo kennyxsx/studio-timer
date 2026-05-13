@@ -9,22 +9,34 @@ struct StudioTimerApp: App {
     /// Both operate on `Application Support/outbound_queue.json`, so writes from
     /// TimerStore are visible to drain calls here on next reachability change.
     @StateObject private var queue = OutboundQueue()
+    @StateObject private var timerStore: TimerStore
+
+    private let api = APIClient(baseURL: AppState.apiBaseURL)
+
+    init() {
+        let api = APIClient(baseURL: AppState.apiBaseURL)
+        _timerStore = StateObject(wrappedValue: TimerStore(
+            api: api,
+            workspaceProvider: { UserDefaults.standard.string(forKey: "selected_workspace_id") },
+            isOnlineProvider: { true }))
+    }
 
     var body: some Scene {
         WindowGroup {
             RootView()
                 .environmentObject(appState)
                 .environmentObject(network)
-                .environment(\.apiClient, APIClient(baseURL: AppState.apiBaseURL))
+                .environmentObject(timerStore)
+                .environment(\.apiClient, api)
                 .onOpenURL { url in handleCommand(url) }
                 .onChange(of: network.isOnline) { _, online in
                     if online {
-                        Task { await queue.drain(using: APIClient(baseURL: AppState.apiBaseURL)) }
+                        Task { await queue.drain(using: api) }
                     }
                 }
                 .task {
                     if network.isOnline {
-                        await queue.drain(using: APIClient(baseURL: AppState.apiBaseURL))
+                        await queue.drain(using: api)
                     }
                 }
         }
@@ -33,7 +45,19 @@ struct StudioTimerApp: App {
     private func handleCommand(_ url: URL) {
         guard url.scheme == "studio-timer", url.host == "command" else { return }
         let command = url.lastPathComponent
-        NotificationCenter.default.post(name: .studioTimerCommand, object: command)
+        Task { @MainActor in
+            switch command {
+            case "toggle-pause":
+                if timerStore.state == .running {
+                    await timerStore.pause()
+                } else if timerStore.state == .paused {
+                    await timerStore.resume()
+                }
+            case "stop":
+                _ = try? await timerStore.stop()
+            default: break
+            }
+        }
     }
 }
 
