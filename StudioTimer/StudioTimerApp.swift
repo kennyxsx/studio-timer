@@ -1,5 +1,6 @@
 // StudioTimer/StudioTimerApp.swift
 import SwiftUI
+import ActivityKit
 
 @main
 struct StudioTimerApp: App {
@@ -10,6 +11,8 @@ struct StudioTimerApp: App {
     /// TimerStore are visible to drain calls here on next reachability change.
     @StateObject private var queue = OutboundQueue()
     @StateObject private var timerStore: TimerStore
+
+    @Environment(\.scenePhase) private var scenePhase
 
     private let api = APIClient(baseURL: AppState.apiBaseURL)
 
@@ -30,7 +33,11 @@ struct StudioTimerApp: App {
                 .environment(\.apiClient, api)
                 .preferredColorScheme(.dark)
                 .tint(Theme.accent)
-                .onOpenURL { url in handleCommand(url) }
+                .onChange(of: scenePhase) { _, phase in
+                    if phase == .active {
+                        Task { await reconcileLiveActivity() }
+                    }
+                }
                 .onChange(of: network.isOnline) { _, online in
                     if online {
                         Task { await queue.drain(using: api) }
@@ -44,27 +51,23 @@ struct StudioTimerApp: App {
         }
     }
 
-    private func handleCommand(_ url: URL) {
-        guard url.scheme == "studio-timer", url.host == "command" else { return }
-        let command = url.lastPathComponent
-        Task { @MainActor in
-            switch command {
-            case "toggle-pause":
-                if timerStore.state == .running {
-                    await timerStore.pause()
-                } else if timerStore.state == .paused {
-                    await timerStore.resume()
-                }
-            case "stop":
-                _ = try? await timerStore.stop()
-            default: break
+    @MainActor
+    private func reconcileLiveActivity() async {
+        let activities = Activity<TimerAttributes>.activities
+
+        if let activity = activities.first {
+            let s = activity.content.state
+            if s.isPaused, let pausedAt = s.pausedAt, timerStore.state == .running {
+                await timerStore.applyExternalPause(at: pausedAt)
+            } else if !s.isPaused, timerStore.state == .paused {
+                await timerStore.applyExternalResume()
             }
+        } else if timerStore.state != .idle, timerStore.active != nil {
+            // No active LA but app thinks there's a running timer — user stopped from LA.
+            // Stop the timer normally; this creates the draft entry.
+            _ = try? await timerStore.stop()
         }
     }
-}
-
-extension Notification.Name {
-    static let studioTimerCommand = Notification.Name("studioTimerCommand")
 }
 
 extension AppState {

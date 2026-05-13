@@ -13,10 +13,12 @@ final class LiveActivityController {
 
     func start(for timer: ActiveTimer) async {
         guard ActivityAuthorizationInfo().areActivitiesEnabled else { return }
+        let isPaused = timer.currentPauseStart != nil
         let state = TimerAttributes.TimerContentState(
             startedAt: pauseAdjustedAnchor(for: timer),
+            pausedAt: isPaused ? timer.currentPauseStart : nil,
             pausedElapsedSeconds: timer.elapsedSeconds(at: Date()),
-            isPaused: timer.currentPauseStart != nil)
+            isPaused: isPaused)
         let content = ActivityContent(state: state, staleDate: nil)
         do {
             activity = try Activity<TimerAttributes>.request(
@@ -32,6 +34,7 @@ final class LiveActivityController {
         guard let activity else { return }
         let state = TimerAttributes.TimerContentState(
             startedAt: pauseAdjustedAnchor(for: timer),
+            pausedAt: isPaused ? (timer.currentPauseStart ?? Date()) : nil,
             pausedElapsedSeconds: timer.elapsedSeconds(at: Date()),
             isPaused: isPaused)
         await activity.update(.init(state: state, staleDate: nil))

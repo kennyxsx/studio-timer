@@ -123,7 +123,9 @@ struct ClassifyView: View {
             }
             .task { await loadLookups() }
             .sheet(isPresented: $showingProjectPicker) {
-                ProjectPickerView(projects: allProjects) { project in
+                let selectedIDs = Set(splits.map { $0.projectID })
+                let available = allProjects.filter { !selectedIDs.contains($0.id) }
+                ProjectPickerView(projects: available) { project in
                     addProject(project)
                 }
             }

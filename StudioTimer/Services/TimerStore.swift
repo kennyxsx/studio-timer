@@ -121,6 +121,34 @@ final class TimerStore: ObservableObject {
         Task { await activityController.end() }
     }
 
+    // MARK: - Live Activity reconciliation
+
+    /// Apply a pause initiated by the Live Activity, using the LA's stamped
+    /// timestamp so the in-app pause duration matches what the user saw on
+    /// the lock screen.
+    func applyExternalPause(at pausedAt: Date) async {
+        guard state == .running, var t = active else { return }
+        t.currentPauseStart = pausedAt
+        active = t
+        state = .paused
+        persist()
+        // We don't re-update the LA — the LA was the source of this change.
+    }
+
+    /// Apply a resume initiated by the Live Activity. We don't have an explicit
+    /// resumed-at timestamp from the activity (state is now running with pausedAt=nil),
+    /// so close the pause interval at "now" which is good enough for the app
+    /// (the LA already accounts for the correct anchor).
+    func applyExternalResume() async {
+        guard state == .paused, var t = active, let pStart = t.currentPauseStart else { return }
+        t.pauseIntervals.append(.init(start: pStart, end: Date()))
+        t.currentPauseStart = nil
+        active = t
+        state = .running
+        persist()
+        // Don't re-update the LA — it's already in the resumed state.
+    }
+
     // MARK: - Drafts management
 
     func refreshDrafts() async {
