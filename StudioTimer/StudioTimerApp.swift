@@ -12,8 +12,19 @@ struct StudioTimerApp: App {
                 .environmentObject(appState)
                 .environmentObject(network)
                 .environment(\.apiClient, APIClient(baseURL: AppState.apiBaseURL))
+                .onOpenURL { url in handleCommand(url) }
         }
     }
+
+    private func handleCommand(_ url: URL) {
+        guard url.scheme == "studio-timer", url.host == "command" else { return }
+        let command = url.lastPathComponent
+        NotificationCenter.default.post(name: .studioTimerCommand, object: command)
+    }
+}
+
+extension Notification.Name {
+    static let studioTimerCommand = Notification.Name("studioTimerCommand")
 }
 
 extension AppState {

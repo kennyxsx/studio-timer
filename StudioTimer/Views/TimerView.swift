@@ -41,6 +41,19 @@ struct TimerView: View {
             .sheet(item: $classifyDraft) { draft in
                 ClassifyView(entry: draft, mode: .classifyDraft)
             }
+            .onReceive(NotificationCenter.default.publisher(for: .studioTimerCommand)) { note in
+                guard let cmd = note.object as? String else { return }
+                Task {
+                    switch cmd {
+                    case "toggle-pause":
+                        if store.state == .running { await store.pause() }
+                        else if store.state == .paused { await store.resume() }
+                    case "stop":
+                        await self.stop()
+                    default: break
+                    }
+                }
+            }
             .confirmationDialog(
                 "Timer ran for \(timerString(seconds: store.active?.elapsedSeconds(at: Date()) ?? 0))",
                 isPresented: $stopConfirmationActive,
