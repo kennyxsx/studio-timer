@@ -1,0 +1,77 @@
+name: StudioTimer
+options:
+  bundleIdPrefix: de.ivy-s
+  deploymentTarget:
+    iOS: "17.0"
+  developmentLanguage: en
+  createIntermediateGroups: true
+  groupSortPosition: top
+
+settings:
+  base:
+    SWIFT_VERSION: "5.9"
+    IPHONEOS_DEPLOYMENT_TARGET: "17.0"
+    TARGETED_DEVICE_FAMILY: "1"        # iPhone only
+    CURRENT_PROJECT_VERSION: "1"
+    MARKETING_VERSION: "0.0.1"         # CI overwrites via PlistBuddy on tag
+    CODE_SIGN_STYLE: Manual
+    CODE_SIGNING_ALLOWED: "NO"
+    DEVELOPMENT_TEAM: ""
+
+targets:
+  StudioTimer:
+    type: application
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources:
+      - path: StudioTimer
+      - path: StudioTimer/Shared           # explicit so the widget target can also reference it
+    info:
+      path: StudioTimer/Info.plist
+      properties:
+        CFBundleDisplayName: Studio Timer
+        CFBundleShortVersionString: "$(MARKETING_VERSION)"
+        CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
+        UILaunchScreen: {}
+        UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
+        NSSupportsLiveActivities: true
+        StudioAPIBaseURL: "https://studio.ivy-s.de"
+        CFBundleURLTypes:
+          - CFBundleURLSchemes: [studio-timer]
+    dependencies:
+      - target: StudioTimerWidget
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: de.ivy-s.studiotimer
+        ENABLE_PREVIEWS: "YES"
+        INFOPLIST_KEY_UISceneConfigurations: {}
+
+  StudioTimerWidget:
+    type: app-extension
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources:
+      - path: StudioTimerWidget
+      - path: StudioTimer/Shared           # share TimerAttributes
+    info:
+      path: StudioTimerWidget/Info.plist
+      properties:
+        CFBundleDisplayName: Studio Timer Widget
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: de.ivy-s.studiotimer.widget
+
+  StudioTimerTests:
+    type: bundle.unit-test
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources:
+      - path: StudioTimerTests
+    dependencies:
+      - target: StudioTimer
+    settings:
+      base:
+        BUNDLE_LOADER: "$(TEST_HOST)"
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/StudioTimer.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/StudioTimer"
