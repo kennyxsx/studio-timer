@@ -69,6 +69,24 @@ actor APIClient {
         return try await send(req)
     }
 
+    // MARK: - Web session handoff
+
+    /// Calls /api/mobile/auth/exchange-token to obtain a short-lived
+    /// single-use token. The token is then used as `?token=X` on
+    /// /auth/exchange in a WKWebView to set the web auth_token cookie
+    /// without prompting for credentials a second time.
+    func exchangeToken() async throws -> String {
+        let req = try makeRequest(path: "/api/mobile/auth/exchange-token", method: "POST", authed: true)
+        struct R: Codable {
+            let exchangeToken: String
+            enum CodingKeys: String, CodingKey {
+                case exchangeToken = "exchange_token"
+            }
+        }
+        let resp: R = try await send(req)
+        return resp.exchangeToken
+    }
+
     // Time entries
 
     struct EntriesList: Codable { let entries: [Entry] }
