@@ -11,6 +11,7 @@ struct StudioTimerApp: App {
     /// TimerStore are visible to drain calls here on next reachability change.
     @StateObject private var queue = OutboundQueue()
     @StateObject private var timerStore: TimerStore
+    @StateObject private var router = AppRouter()
 
     @Environment(\.scenePhase) private var scenePhase
 
@@ -33,6 +34,7 @@ struct StudioTimerApp: App {
                 .environmentObject(appState)
                 .environmentObject(network)
                 .environmentObject(timerStore)
+                .environmentObject(router)
                 .environment(\.apiClient, api)
                 .preferredColorScheme(.dark)
                 .tint(Theme.accent)
