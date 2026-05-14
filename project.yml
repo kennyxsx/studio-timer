@@ -33,7 +33,7 @@ targets:
     info:
       path: StudioTimer/Info.plist
       properties:
-        CFBundleDisplayName: Studio Timer
+        CFBundleDisplayName: Studio
         CFBundleShortVersionString: "$(MARKETING_VERSION)"
         CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
         UILaunchScreen: {}
