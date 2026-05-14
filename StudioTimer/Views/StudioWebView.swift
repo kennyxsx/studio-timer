@@ -86,10 +86,20 @@ struct StudioWebView: UIViewRepresentable {
             // loading the studio root, which shows the studio login page.
             do {
                 let token = try await api.exchangeToken()
-                let url = baseURL.appendingPathComponent("/auth/exchange")
-                var comps = URLComponents(url: url, resolvingAgainstBaseURL: false)!
+                // appendingPathComponent("/auth/exchange") is deprecated when
+                // the path begins with a slash; use relative-URL construction
+                // (same pattern APIClient.makeRequest uses).
+                guard let base = URL(string: "/auth/exchange", relativeTo: baseURL)?.absoluteURL,
+                      var comps = URLComponents(url: base, resolvingAgainstBaseURL: false) else {
+                    webView?.load(URLRequest(url: baseURL))
+                    return
+                }
                 comps.queryItems = [URLQueryItem(name: "token", value: token)]
-                webView?.load(URLRequest(url: comps.url!))
+                if let final = comps.url {
+                    webView?.load(URLRequest(url: final))
+                } else {
+                    webView?.load(URLRequest(url: baseURL))
+                }
             } catch {
                 webView?.load(URLRequest(url: baseURL))
             }
