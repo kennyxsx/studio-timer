@@ -43,5 +43,9 @@ final class AppState: ObservableObject {
         currentUserName = nil
         currentUserEmail = nil
         isAuthenticated = false
+        // Clear the Studio WebView's session cookie too — otherwise next
+        // launch the WebView still shows the previous user's authenticated
+        // state. Runs in the background; doesn't block the sync state flip.
+        Task { @MainActor in await WebCookieStore.clearStudioCookies() }
     }
 }
