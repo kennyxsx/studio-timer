@@ -35,6 +35,36 @@ final class AppState: ObservableObject {
         defaults.set(id, forKey: "selected_workspace_id")
     }
 
+    /// Refreshes the user profile + workspace list from /api/mobile/me.
+    /// Called on app launch when the JWT survived (e.g. across an uninstall —
+    /// Keychain persists, UserDefaults doesn't, so availableWorkspaces is
+    /// empty and we'd otherwise land on a picker with no rows).
+    ///
+    /// Also auto-selects the workspace when exactly one is available, mirroring
+    /// the post-login flow in didLogIn(workspaces:user:).
+    func refreshFromServer(api: APIClient) async {
+        do {
+            let me = try await api.me()
+            availableWorkspaces = me.workspaces
+            currentUserName = me.user.name
+            currentUserEmail = me.user.email
+            if selectedWorkspaceID == nil && me.workspaces.count == 1 {
+                setWorkspace(me.workspaces[0].id)
+            } else if let sel = selectedWorkspaceID,
+                      !me.workspaces.contains(where: { $0.id == sel }) {
+                // Cached workspace ID is no longer one the user has access to.
+                selectedWorkspaceID = nil
+                defaults.removeObject(forKey: "selected_workspace_id")
+            }
+        } catch APIError.unauthorized {
+            // JWT was rejected (e.g. revoked server-side). Fall back to login.
+            logout()
+        } catch {
+            // Network errors etc. — leave state as-is; user can retry by
+            // re-opening the app or by signing in again.
+        }
+    }
+
     func logout() {
         keychain.clearAll()
         defaults.removeObject(forKey: "selected_workspace_id")

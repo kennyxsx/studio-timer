@@ -3,14 +3,32 @@ import SwiftUI
 
 struct RootView: View {
     @EnvironmentObject private var appState: AppState
+    @Environment(\.apiClient) private var api
 
     var body: some View {
-        if !appState.isAuthenticated {
-            LoginView()
-        } else if appState.selectedWorkspaceID == nil {
-            WorkspacePickerView()
-        } else {
-            StudioShellView()
+        Group {
+            if !appState.isAuthenticated {
+                LoginView()
+            } else if appState.selectedWorkspaceID == nil {
+                WorkspacePickerView()
+            } else {
+                StudioShellView()
+            }
+        }
+        .task {
+            // Hydrate workspaces / user info from the server on launch when
+            // we have a JWT (Keychain) but no cached workspace list. This is
+            // the typical post-uninstall state — Keychain survives, but
+            // UserDefaults (which holds availableWorkspaces' source-of-truth
+            // entry point via didLogIn) does not — so without this refresh
+            // we'd be stuck on an empty workspace picker.
+            //
+            // Also re-runs whenever isAuthenticated flips to true (e.g. after
+            // logging in fresh) which is a harmless no-op since didLogIn
+            // already populated the list.
+            if appState.isAuthenticated && appState.availableWorkspaces.isEmpty {
+                await appState.refreshFromServer(api: api)
+            }
         }
     }
 }
