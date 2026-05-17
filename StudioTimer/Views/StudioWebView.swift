@@ -114,15 +114,30 @@ struct StudioWebView: UIViewRepresentable {
                 decisionHandler(.allow); return
             }
 
-            // External domains open in Safari.
+            // Custom URL scheme: the in-page JS hijack in studio's
+            // static/js/shared/ios-shell.ts navigates to
+            // `studio-timer://timer/open` when the user taps a /time link.
+            // Catch it here and open the native Timer modal directly —
+            // skips the iOS UIApplication.open() round-trip.
+            if url.scheme == "studio-timer" && url.host == "timer" {
+                decisionHandler(.cancel)
+                router.openTimer()
+                return
+            }
+
+            // External domains open in Safari. Also routes other studio-timer://
+            // schemes (e.g. command/* from Live Activity taps) through the
+            // system, where StudioTimerApp.onOpenURL handles them.
             if let host = url.host, host != baseURL.host {
                 decisionHandler(.cancel)
                 UIApplication.shared.open(url)
                 return
             }
 
-            // /time, /time/track and friends open the native Timer modal
-            // instead of navigating.
+            // Belt-and-suspenders fallback: if a /time link ever reaches the
+            // navigation delegate as a top-level navigation (e.g. the in-page
+            // hijack didn't fire because the JS bundle hadn't loaded yet),
+            // still divert to the native Timer modal.
             if url.path == "/time" || url.path.hasPrefix("/time/") {
                 decisionHandler(.cancel)
                 router.openTimer()
