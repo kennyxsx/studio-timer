@@ -45,13 +45,23 @@ private struct StudioShellView: View {
 
     var body: some View {
         ZStack {
+            // Paint the entire screen (including the status-bar and home-indicator
+            // zones) with the web app's body background colour. The WebView
+            // itself does NOT use .ignoresSafeArea() — it sits inside the safe
+            // area so no page content can land under the iOS chrome.
+            //
+            // This is more robust than env(safe-area-inset-*) CSS rules in
+            // the web bundle: every drawer, sidebar, modal, sticky header
+            // etc. is naturally below the status bar without any per-selector
+            // safe-area code.
+            Theme.base100.ignoresSafeArea()
+
             StudioWebView(
                 baseURL: AppState.apiBaseURL,
                 router: router,
                 api: api,
                 state: webState
             )
-            .ignoresSafeArea()
 
             if webState.isLoading && webState.loadError == nil {
                 ProgressView()

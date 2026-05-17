@@ -36,6 +36,13 @@ struct StudioWebView: UIViewRepresentable {
         web.allowsBackForwardNavigationGestures = true
         web.customUserAgent = Self.makeUserAgent()
         web.scrollView.refreshControl = context.coordinator.makeRefreshControl()
+        // Don't let iOS auto-add safe-area insets to the WebView's content;
+        // SwiftUI is keeping the WebView inside the safe area already (see
+        // RootView.StudioShellView), so any additional inset would double-up
+        // and create a gap at the bottom under the home indicator. The web
+        // app draws its own backgrounds edge-to-edge inside the viewport
+        // it's actually given.
+        web.scrollView.contentInsetAdjustmentBehavior = .never
 
         context.coordinator.webView = web
         state.webView = web
