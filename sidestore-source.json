@@ -21,13 +21,13 @@
       "screenshotURLs": [],
       "versions": [
         {
-          "version": "0.0.16",
+          "version": "0.0.17",
           "buildVersion": "1",
           "date": "2026-05-17",
-          "localizedDescription": "Release 0.0.16.",
-          "downloadURL": "https://github.com/kennyxsx/studio-timer/releases/download/v0.0.16/StudioTimer-0.0.16.ipa",
-          "size": 412616,
-          "sha256": "881e3013b95c0216439d520e970009bc9afd5afc289f5b5218291e8f5c5062e6"
+          "localizedDescription": "Release 0.0.17.",
+          "downloadURL": "https://github.com/kennyxsx/studio-timer/releases/download/v0.0.17/StudioTimer-0.0.17.ipa",
+          "size": 417315,
+          "sha256": "075fd3305303d31ec22d5701c61b5356a4e17b40a11d3e5091332d0723dc2b4b"
         },
         {
           "version": "0.0.0",
