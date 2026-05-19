@@ -299,7 +299,9 @@ struct ClassifyView: View {
         } catch let APIError.http(_, _, message) {
             errorText = message
         } catch {
-            errorText = error.localizedDescription
+            if !isCancellation(error) {
+                errorText = error.localizedDescription
+            }
         }
     }
 }

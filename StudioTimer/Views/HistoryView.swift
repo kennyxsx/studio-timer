@@ -11,6 +11,17 @@ struct HistoryView: View {
     @State private var isLoading: Bool = false
     @State private var errorText: String?
     @State private var editing: Entry?
+    @State private var showingManualForm: Bool = false
+    /// Set by ManualEntryFormView when its create-draft call succeeds.
+    /// Stored separately from `pendingClassification` because SwiftUI can
+    /// only present one sheet at a time — the manual form's sheet must
+    /// fully dismiss before we can present ClassifyView. Promoted to
+    /// `pendingClassification` in the manual-form sheet's onDismiss.
+    @State private var stagedDraft: Entry?
+    /// Set after stagedDraft is promoted in onDismiss. Drives the
+    /// ClassifyView sheet so the operator classifies the new draft
+    /// immediately rather than seeing an unclassified row in history.
+    @State private var pendingClassification: Entry?
 
     var body: some View {
         NavigationStack {
@@ -50,10 +61,36 @@ struct HistoryView: View {
             .scrollContentBackground(.hidden)
             .background(Theme.base100)
             .navigationTitle("History")
+            .toolbar {
+                ToolbarItem(placement: .primaryAction) {
+                    Button {
+                        showingManualForm = true
+                    } label: {
+                        Image(systemName: "plus")
+                    }
+                    .accessibilityLabel("Add manual entry")
+                }
+            }
             .refreshable { await reload() }
             .task(id: rangeDays) { await reload() }
             .sheet(item: $editing, onDismiss: { Task { await reload() } }) { entry in
                 ClassifyView(entry: entry, mode: .editClassified)
+            }
+            .sheet(isPresented: $showingManualForm, onDismiss: {
+                // Promote the staged draft now that the manual-form sheet has
+                // fully dismissed — SwiftUI can only present one sheet at a
+                // time, so this is the right moment to trigger ClassifyView.
+                if let staged = stagedDraft {
+                    stagedDraft = nil
+                    pendingClassification = staged
+                }
+            }) {
+                ManualEntryFormView { entry in
+                    stagedDraft = entry
+                }
+            }
+            .sheet(item: $pendingClassification, onDismiss: { Task { await reload() } }) { entry in
+                ClassifyView(entry: entry, mode: .classifyDraft)
             }
             .alert("Error", isPresented: .init(get: { errorText != nil }, set: { if !$0 { errorText = nil } })) {
                 Button("OK") { errorText = nil }
@@ -73,7 +110,12 @@ struct HistoryView: View {
         } catch let APIError.http(_, _, message) {
             errorText = message
         } catch {
-            errorText = error.localizedDescription
+            // Ignore Task-cancellation errors fired by SwiftUI when the view's
+            // .task is cancelled on tab switch — they're not user-facing.
+            // Surfacing them produced an "Error: cancelled" popup loop.
+            if !isCancellation(error) {
+                errorText = error.localizedDescription
+            }
         }
     }
 
@@ -86,7 +128,9 @@ struct HistoryView: View {
         } catch let APIError.http(_, _, message) {
             errorText = message
         } catch {
-            errorText = error.localizedDescription
+            if !isCancellation(error) {
+                errorText = error.localizedDescription
+            }
         }
     }
 

@@ -63,7 +63,10 @@ struct DraftsListView: View {
         } catch let APIError.http(_, _, message) {
             errorText = message
         } catch {
-            errorText = error.localizedDescription
+            // Cancellation errors are not user-facing — skip surfacing them.
+            if !isCancellation(error) {
+                errorText = error.localizedDescription
+            }
         }
     }
 }

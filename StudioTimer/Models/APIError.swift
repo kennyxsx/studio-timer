@@ -27,3 +27,24 @@ enum APIError: Error, LocalizedError {
         }
     }
 }
+
+/// True when `error` represents "the in-flight request was cancelled because
+/// the caller went away" — typically a SwiftUI `.task` whose view disappeared
+/// (tab switch, sheet dismiss, etc.) which auto-cancels its child Task and the
+/// URLSession request inside it. These are NOT user-facing errors and should
+/// never be surfaced as alerts; treat them like a no-op.
+///
+/// Catches three flavours:
+///   1. Swift's `CancellationError` (from structured concurrency)
+///   2. `URLError.cancelled` (from URLSession.data(for:) being cancelled)
+///   3. `APIError.network(URLError.cancelled)` — our own wrapper around (2)
+func isCancellation(_ error: Error) -> Bool {
+    if error is CancellationError { return true }
+    if let urlError = error as? URLError, urlError.code == .cancelled { return true }
+    if case let APIError.network(inner) = error,
+       let urlError = inner as? URLError,
+       urlError.code == .cancelled {
+        return true
+    }
+    return false
+}
