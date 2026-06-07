@@ -163,16 +163,19 @@ struct StudioWebView: UIViewRepresentable {
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
             state.isLoading = false
             state.loadError = nil
+            webView.scrollView.refreshControl?.endRefreshing()
         }
 
         func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
             state.isLoading = false
             state.loadError = error
+            webView.scrollView.refreshControl?.endRefreshing()
         }
 
         func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
             state.isLoading = false
             state.loadError = error
+            webView.scrollView.refreshControl?.endRefreshing()
         }
 
         // MARK: - Pull-to-refresh
@@ -184,10 +187,12 @@ struct StudioWebView: UIViewRepresentable {
         }
 
         @objc func handleRefresh(_ sender: UIRefreshControl) {
+            // Just kick off the reload. The spinner is ended in the navigation
+            // delegate callbacks (didFinish / didFail / didFailProvisional) so
+            // it tracks the real load duration instead of an arbitrary 1s delay
+            // — short loads stop spinning immediately, long ones keep spinning
+            // until they actually finish.
             webView?.reload()
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                sender.endRefreshing()
-            }
         }
     }
 }

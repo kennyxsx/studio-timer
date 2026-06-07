@@ -5,23 +5,20 @@ struct HistoryView: View {
     @Environment(\.apiClient) private var api
     @EnvironmentObject private var appState: AppState
     @EnvironmentObject private var store: TimerStore
+    @EnvironmentObject private var router: AppRouter
 
     @State private var entries: [Entry] = []
     @State private var rangeDays: Int = 30
     @State private var isLoading: Bool = false
     @State private var errorText: String?
-    @State private var editing: Entry?
-    @State private var showingManualForm: Bool = false
-    /// Set by ManualEntryFormView when its create-draft call succeeds.
-    /// Stored separately from `pendingClassification` because SwiftUI can
-    /// only present one sheet at a time — the manual form's sheet must
-    /// fully dismiss before we can present ClassifyView. Promoted to
-    /// `pendingClassification` in the manual-form sheet's onDismiss.
-    @State private var stagedDraft: Entry?
-    /// Set after stagedDraft is promoted in onDismiss. Drives the
-    /// ClassifyView sheet so the operator classifies the new draft
-    /// immediately rather than seeing an unclassified row in history.
-    @State private var pendingClassification: Entry?
+    /// Single source of truth for which sheet (if any) is presented. SwiftUI
+    /// presents one sheet at a time, so one enum + one `.sheet(item:)` is more
+    /// robust than stacking several `.sheet` modifiers on the same view.
+    @State private var sheet: SheetRoute?
+    /// Holds the draft created by ManualEntryFormView until its sheet has fully
+    /// dismissed; promoted to a `.classifyDraft` route in `onDismiss` (the next
+    /// sheet can't present until the current one is gone).
+    @State private var draftAwaitingClassification: Entry?
 
     var body: some View {
         NavigationStack {
@@ -35,7 +32,7 @@ struct HistoryView: View {
                     .pickerStyle(.segmented)
                 }
                 ForEach(entries) { entry in
-                    Button { editing = entry } label: {
+                    Button { sheet = .editClassified(entry) } label: {
                         VStack(alignment: .leading, spacing: 4) {
                             HStack {
                                 Text(entry.startedAt.formatted(date: .abbreviated, time: .shortened))
@@ -61,10 +58,14 @@ struct HistoryView: View {
             .scrollContentBackground(.hidden)
             .background(Theme.base100)
             .navigationTitle("History")
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .primaryAction) {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button("Done") { router.closeTimer() }
+                }
+                ToolbarItem(placement: .topBarTrailing) {
                     Button {
-                        showingManualForm = true
+                        sheet = .manualEntry
                     } label: {
                         Image(systemName: "plus")
                     }
@@ -73,24 +74,17 @@ struct HistoryView: View {
             }
             .refreshable { await reload() }
             .task(id: rangeDays) { await reload() }
-            .sheet(item: $editing, onDismiss: { Task { await reload() } }) { entry in
-                ClassifyView(entry: entry, mode: .editClassified)
-            }
-            .sheet(isPresented: $showingManualForm, onDismiss: {
-                // Promote the staged draft now that the manual-form sheet has
-                // fully dismissed — SwiftUI can only present one sheet at a
-                // time, so this is the right moment to trigger ClassifyView.
-                if let staged = stagedDraft {
-                    stagedDraft = nil
-                    pendingClassification = staged
+            .sheet(item: $sheet, onDismiss: handleSheetDismiss) { route in
+                switch route {
+                case .editClassified(let entry):
+                    ClassifyView(entry: entry, mode: .editClassified)
+                case .manualEntry:
+                    ManualEntryFormView { entry in
+                        draftAwaitingClassification = entry
+                    }
+                case .classifyDraft(let entry):
+                    ClassifyView(entry: entry, mode: .classifyDraft)
                 }
-            }) {
-                ManualEntryFormView { entry in
-                    stagedDraft = entry
-                }
-            }
-            .sheet(item: $pendingClassification, onDismiss: { Task { await reload() } }) { entry in
-                ClassifyView(entry: entry, mode: .classifyDraft)
             }
             .alert("Error", isPresented: .init(get: { errorText != nil }, set: { if !$0 { errorText = nil } })) {
                 Button("OK") { errorText = nil }
@@ -119,6 +113,20 @@ struct HistoryView: View {
         }
     }
 
+    /// Runs after any sheet dismisses. If the manual-entry form just created a
+    /// draft, pivot to ClassifyView for it — deferred to the next runloop tick
+    /// so the form's sheet is fully gone before the next one presents (SwiftUI
+    /// won't present a second sheet on top of a dismissing one). Otherwise the
+    /// list just refreshes to reflect any edit/classification.
+    private func handleSheetDismiss() {
+        if let draft = draftAwaitingClassification {
+            draftAwaitingClassification = nil
+            Task { @MainActor in sheet = .classifyDraft(draft) }
+        } else {
+            Task { await reload() }
+        }
+    }
+
     private func delete(_ entry: Entry) async {
         do {
             try await api.deleteEntry(entry.id)
@@ -140,5 +148,22 @@ struct HistoryView: View {
         if entry.customerUserID != nil { return "Customer overhead" }
         if let cat = entry.category, !cat.isEmpty { return "Internal: \(cat)" }
         return "Classified"
+    }
+
+    /// The sheets HistoryView can present. Collapsing to one enum + a single
+    /// `.sheet(item:)` avoids stacking multiple `.sheet` modifiers on one view
+    /// (a SwiftUI fragility where only one reliably presents).
+    private enum SheetRoute: Identifiable {
+        case editClassified(Entry)
+        case manualEntry
+        case classifyDraft(Entry)
+
+        var id: String {
+            switch self {
+            case .editClassified(let e): return "edit-\(e.id)"
+            case .manualEntry:           return "manual"
+            case .classifyDraft(let e):  return "classify-\(e.id)"
+            }
+        }
     }
 }

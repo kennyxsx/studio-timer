@@ -5,6 +5,7 @@ struct TimerView: View {
     @Environment(\.apiClient) private var api
     @EnvironmentObject private var appState: AppState
     @EnvironmentObject private var store: TimerStore
+    @EnvironmentObject private var router: AppRouter
 
     @State private var showingSettings = false
     @State private var classifyDraft: Entry?
@@ -45,6 +46,9 @@ struct TimerView: View {
             .navigationTitle("Studio Timer")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button("Done") { router.closeTimer() }
+                }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button { showingSettings = true } label: {
                         Image(systemName: "gearshape")

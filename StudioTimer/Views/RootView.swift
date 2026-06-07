@@ -88,14 +88,14 @@ private struct StudioShellView: View {
             }
         }
         .fullScreenCover(isPresented: $router.showingTimer) {
-            NavigationStack {
-                RootTabView()
-                    .toolbar {
-                        ToolbarItem(placement: .topBarLeading) {
-                            Button("Done") { router.closeTimer() }
-                        }
-                    }
-            }
+            // NO NavigationStack here. Each tab in RootTabView already owns its
+            // own NavigationStack, so wrapping the TabView in another one nests
+            // navigation containers (NavigationStack -> TabView -> NavigationStack).
+            // That nesting makes SwiftUI's toolbar resolution non-deterministic:
+            // the per-tab trailing items (the gear in TimerView, the "+" in
+            // HistoryView) intermittently fail to render. The "Done" dismissal
+            // now lives in each tab's own toolbar instead. See docs/ios-navigation.md.
+            RootTabView()
         }
     }
 }

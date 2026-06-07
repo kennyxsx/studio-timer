@@ -5,6 +5,7 @@ struct DraftsListView: View {
     @Environment(\.apiClient) private var api
     @EnvironmentObject private var store: TimerStore
     @EnvironmentObject private var appState: AppState
+    @EnvironmentObject private var router: AppRouter
 
     @State private var classifying: Entry?
     @State private var errorText: String?
@@ -43,6 +44,12 @@ struct DraftsListView: View {
             .scrollContentBackground(.hidden)
             .background(Theme.base100)
             .navigationTitle("Drafts")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button("Done") { router.closeTimer() }
+                }
+            }
             .refreshable { await store.refreshDrafts() }
             .task { await store.refreshDrafts() }
             .sheet(item: $classifying) { entry in
