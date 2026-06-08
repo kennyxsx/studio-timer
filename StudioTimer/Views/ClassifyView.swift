@@ -54,9 +54,7 @@ struct ClassifyView: View {
         NavigationStack {
             Form {
                 Section("Duration") {
-                    Stepper(value: $durationMinutes, in: 1...1440, step: 5) {
-                        Text("\(durationMinutes) min")
-                    }
+                    DurationField(totalMinutes: $durationMinutes)
                 }
 
                 Section("Shape") {
@@ -215,6 +213,7 @@ struct ClassifyView: View {
     }
 
     private var canSave: Bool {
+        guard durationMinutes >= 1 else { return false }
         switch shape {
         case .project:
             let sum = splits.reduce(0) { $0 + $1.percentage }

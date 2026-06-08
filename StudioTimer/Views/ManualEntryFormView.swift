@@ -34,9 +34,7 @@ struct ManualEntryFormView: View {
                 }
 
                 Section("Duration") {
-                    Stepper(value: $durationMinutes, in: 1...1440, step: 5) {
-                        Text("\(durationMinutes) min")
-                    }
+                    DurationField(totalMinutes: $durationMinutes)
                 }
 
                 if let errorText {
@@ -55,7 +53,7 @@ struct ManualEntryFormView: View {
                     Button(isSaving ? "Saving…" : "Next") {
                         Task { await save() }
                     }
-                    .disabled(isSaving)
+                    .disabled(isSaving || durationMinutes < 1)
                 }
             }
         }
